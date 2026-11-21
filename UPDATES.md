@@ -1,5 +1,9 @@
 # All updates of RSF3D library
 
+## 0.4.2 - November 21st, 2026:
+- Added `enabled` argument for function `RF_SetFog`.
+- Fixed the fog's color problem.
+
 ## 0.4.1 - November 21st, 2026:
 - `fogColor` in fragment shader: changed from `vec3` to `vec4`.
 - Changed in state and function `RF_SetFog`.
