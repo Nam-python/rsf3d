@@ -1,7 +1,7 @@
 # RSF3D (Raylib Shader Forward 3D)
 
 ## Information
-- This library is a 3d shader helper for raylib.
+- This library is a lightweight, easy-to-use 3d shader helper for raylib.
 - Latest version: 0.4.0
 - Features:
   - 2 shading models: Blinn-Phong and Gouraud.
