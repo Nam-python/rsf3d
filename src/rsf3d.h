@@ -345,7 +345,7 @@ Shader RF_InitShader(void)
 
         "uniform float fogStart;\n"
         "uniform float fogEnd;\n"
-        "uniform vec3 fogColor;\n"
+        "uniform vec4 fogColor;\n"
         "uniform int fogMode;\n"
         "uniform float fogDensity;\n"
 
@@ -453,8 +453,8 @@ Shader RF_InitShader(void)
         "\n"
         "    fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
         "\n"
-        "    vec3 result = mix(fogColor, surfaceColor, fogFactor);\n"
-        "    finalColor = vec4(result, texColor.a);\n"
+        "    vec4 result = mix(fogColor, vec4(surfaceColor, texColor.a), fogFactor);\n"
+        "    finalColor = result;\n"
         "}\n";
 
     // TraceLog(LOG_INFO, "Frag code: %s", fragSrc);
@@ -745,12 +745,11 @@ void RF_SetFog(Shader shader, float start, float end, float density, Color color
     RSF3D_State.fog.mode = mode;
 
     Vector4 fog = ColorNormalize(color);
-    Vector3 fogVec3 = CLITERAL(Vector3){fog.x, fog.y, fog.z};
 
     SetShaderValue(shader, RSF3D_State.fog.startLoc, &RSF3D_State.fog.start, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, RSF3D_State.fog.endLoc, &RSF3D_State.fog.end, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, RSF3D_State.fog.densityLoc, &RSF3D_State.fog.density, SHADER_UNIFORM_FLOAT);
-    SetShaderValue(shader, RSF3D_State.fog.colorLoc, &fogVec3, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, RSF3D_State.fog.colorLoc, &fog, SHADER_UNIFORM_VEC4);
     SetShaderValue(shader, RSF3D_State.fog.modeLoc, &RSF3D_State.fog.mode, SHADER_UNIFORM_INT);
 }
 

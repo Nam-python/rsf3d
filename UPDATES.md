@@ -1,5 +1,9 @@
 # All updates of RSF3D library
 
+## 0.4.1 - November 21st, 2026:
+- `fogColor` in fragment shader: changed from `vec3` to `vec4`.
+- Changed in state and function `RF_SetFog`.
+
 ## 0.4.0 - November 21st, 2026:
 - Added function `RF_UnloadShader`.
 - Changed in RSF3D_State.
