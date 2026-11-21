@@ -1,5 +1,10 @@
 # All updates of RSF3D library
 
+## 0.4.0 - November 21st, 2026:
+- Added function `RF_UnloadShader`.
+- Changed in RSF3D_State.
+- Added fog (linear, exponential and exponential squared fog).
+
 ## 0.3.3 - November 18th, 2026:
 - Fixed wrong directional light calculation in shader.
 
