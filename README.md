@@ -6,8 +6,8 @@
 - Features:
   - 2 shading models: Blinn-Phong and Gouraud.
   - 3 types of lights: point, directional and spot lights.
+  - 3 types of fogs: linear, exponential and exponential squared fog.
   - Skybox.
-  - Fog
 
 ## How to use and learn
 Use: This library is just a C header-only, no binary files, so you just attach it with your projects.
