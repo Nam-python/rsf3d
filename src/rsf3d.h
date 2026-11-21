@@ -32,8 +32,8 @@
 #ifndef RSF3D_H
 #define RSF3D_H
 
-#include "external/raylib/src/raylib.h"
-#include "external/raylib/src/rlgl.h"
+#include "external/raylib.h"
+#include "external/rlgl.h"
 
 #if !defined(__cplusplus)
     #include <stdbool.h>
