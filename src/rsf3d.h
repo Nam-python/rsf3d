@@ -91,11 +91,12 @@ typedef struct RF_Skybox
 
 } RF_Skybox;
 
-Shader RF_InitShader(void); // Initialize RSF3D shader
-void RF_UpdateShader(Shader shader, Camera3D camera); // Update RSF3D shader
+Shader RF_InitShader(void); // Initialize RSF3D shader. NOTE: Must be called after InitWindow() and before drawing 3D objects and do not call twice.
+void RF_UpdateShader(Shader shader, Camera3D camera); // Update RSF3D shader, must be called every frame before drawing 3D objects
+void RF_UnloadShader(Shader shader); // Unload RSF3D shader, must be called after CloseWindow() and after drawing 3D objects
 
 // SHADING MODEL
-void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode); // Set shading model
+void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode); // Set shading model, default is Blinn-Phong
 
 // LIGHT
 RF_Light RF_CreateLightPro(Vector3 position, Vector3 target, 
@@ -111,9 +112,9 @@ RF_Light RF_CreateLightSpot(Vector3 position, Vector3 target, Color ambient, Col
 void RF_UpdateLightIntoBuffer(const RF_Light* light, int index); // Update light into RSF3D state's buffer (should be in the loop if the light's data is changed a lot)
 
 // SKYBOX
-RF_Skybox RF_CreateSkybox(void); // Create skybox
+RF_Skybox RF_CreateSkybox(void); // Create skybox, must be called after RF_InitShader() and before drawing 3D objects
 void RF_UnloadSkybox(RF_Skybox skybox); // Unload skybox
-void RF_DrawSkybox(RF_Skybox skybox, Camera3D camera); // Draw skybox
+void RF_DrawSkybox(RF_Skybox skybox, Camera3D camera); // Draw skybox, must be called after RF_UpdateShader() and before drawing 3D objects
 
 static int rfLightCount = 0;
 static struct
@@ -121,25 +122,25 @@ static struct
     struct
     {
         // POSITION
-        Vector3 positions[MAX_LIGHTS];
-        Vector3 targets[MAX_LIGHTS];
+        Vector3* positions;
+        Vector3* targets;
 
         // COLOR
-        Vector3 ambientColors[MAX_LIGHTS];
-        Vector3 diffuseColors[MAX_LIGHTS];
-        Vector3 specularColors[MAX_LIGHTS];
+        Vector3* ambientColors;
+        Vector3* diffuseColors;
+        Vector3* specularColors;
 
         // LIGHT'S DETAILS
-        float intensity[MAX_LIGHTS];
-        float constant[MAX_LIGHTS]; // for attenuation
-        float linear[MAX_LIGHTS]; // for attenuation
-        float quadratic[MAX_LIGHTS]; // for attenuation
+        float* intensity;
+        float* constant; // for attenuation
+        float* linear; // for attenuation
+        float* quadratic; // for attenuation
 
-        float cutOff[MAX_LIGHTS];
-        float outerCutOff[MAX_LIGHTS];
+        float* cutOff;
+        float* outerCutOff;
 
-        int mode[MAX_LIGHTS];
-        int enabled[MAX_LIGHTS];
+        int* mode;
+        int* enabled;
 
         int posLoc, tarLoc, ambientLoc, difLoc, specularLoc, 
             intensityLoc, constantLoc, linearLoc, quadrLoc,
@@ -434,6 +435,20 @@ Shader RF_InitShader(void)
     RSF3D_State.lights.shadingModelLoc = GetShaderLocation(shader, "shadingModel");
     RF_SetShadingModel(shader, RF_SHADING_MODEL_BLINN_PHONG); // Blinn-Phong shading model is default
 
+    RSF3D_State.lights.positions = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.targets = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.ambientColors = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.diffuseColors = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.specularColors = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.intensity = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.constant = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.linear = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.quadratic = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.cutOff = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.outerCutOff = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.mode = (int*)MemAlloc(sizeof(int) * RF_MAX_LIGHTS);
+    RSF3D_State.lights.enabled = (int*)MemAlloc(sizeof(int) * RF_MAX_LIGHTS);
+
     return shader;
 }
 
@@ -469,6 +484,25 @@ void RF_UpdateShader(Shader shader, Camera3D camera)
 
     // VIEW POS
     SetShaderValue(shader, RSF3D_State.lights.viewLoc, &camera.position, SHADER_UNIFORM_VEC3);
+}
+
+void RF_UnloadShader(Shader shader)
+{
+    if (RSF3D_State.lights.positions != NULL) MemFree(RSF3D_State.lights.positions);
+    if (RSF3D_State.lights.targets != NULL) MemFree(RSF3D_State.lights.targets);
+    if (RSF3D_State.lights.ambientColors != NULL) MemFree(RSF3D_State.lights.ambientColors);
+    if (RSF3D_State.lights.diffuseColors != NULL) MemFree(RSF3D_State.lights.diffuseColors);
+    if (RSF3D_State.lights.specularColors != NULL) MemFree(RSF3D_State.lights.specularColors);
+    if (RSF3D_State.lights.intensity != NULL) MemFree(RSF3D_State.lights.intensity);
+    if (RSF3D_State.lights.constant != NULL) MemFree(RSF3D_State.lights.constant);
+    if (RSF3D_State.lights.linear != NULL) MemFree(RSF3D_State.lights.linear);
+    if (RSF3D_State.lights.quadratic != NULL) MemFree(RSF3D_State.lights.quadratic);
+    if (RSF3D_State.lights.cutOff != NULL) MemFree(RSF3D_State.lights.cutOff);
+    if (RSF3D_State.lights.outerCutOff != NULL) MemFree(RSF3D_State.lights.outerCutOff);
+    if (RSF3D_State.lights.mode != NULL) MemFree(RSF3D_State.lights.mode);
+    if (RSF3D_State.lights.enabled != NULL) MemFree(RSF3D_State.lights.enabled);
+
+    UnloadShader(shader);
 }
 
 void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode)
