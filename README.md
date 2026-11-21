@@ -1,13 +1,13 @@
 # RSF3D (Raylib Shader Forward 3D)
 
 ## Information
-This library is a 3d shader helper for raylib.
-Latest version: 0.4.0
-Features:
-- 2 shading models: Blinn-Phong and Gouraud.
-- 3 types of lights: point, directional and spot lights.
-- Skybox.
-- Fog
+- This library is a 3d shader helper for raylib.
+- Latest version: 0.4.0
+- Features:
+  - 2 shading models: Blinn-Phong and Gouraud.
+  - 3 types of lights: point, directional and spot lights.
+  - Skybox.
+  - Fog
 
 ## How to use and learn
 Use: This library is just a C header-only, no binary files, so you just attach it with your projects.
