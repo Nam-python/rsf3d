@@ -62,6 +62,13 @@ enum RF_ShadingModel
     RF_SHADING_MODEL_GOURAUD
 };
 
+enum RF_FogMode
+{
+    RF_FOG_LINEAR = 0,
+    RF_FOG_EXP, // Exponential fog
+    RF_FOG_EXP2 // Exponential squared fog
+};
+
 typedef struct RF_Light
 {
     Vector3 position;
@@ -91,7 +98,7 @@ typedef struct RF_Skybox
 
 } RF_Skybox;
 
-Shader RF_InitShader(void); // Initialize RSF3D shader. NOTE: Must be called after InitWindow() and before drawing 3D objects and do not call twice.
+Shader RF_InitShader(void); // Initialize RSF3D shader. NOTE: Must be called after InitWindow() and do not call twice
 void RF_UpdateShader(Shader shader, Camera3D camera); // Update RSF3D shader, must be called every frame before drawing 3D objects
 void RF_UnloadShader(Shader shader); // Unload RSF3D shader, must be called after CloseWindow() and after drawing 3D objects
 
@@ -115,6 +122,9 @@ void RF_UpdateLightIntoBuffer(const RF_Light* light, int index); // Update light
 RF_Skybox RF_CreateSkybox(void); // Create skybox, must be called after RF_InitShader() and before drawing 3D objects
 void RF_UnloadSkybox(RF_Skybox skybox); // Unload skybox
 void RF_DrawSkybox(RF_Skybox skybox, Camera3D camera); // Draw skybox, must be called after RF_UpdateShader() and before drawing 3D objects
+
+// FOG
+void RF_SetFog(Shader shader, float start, float end, Color color, enum RF_FogMode mode); // Set fog parameters
 
 static int rfLightCount = 0;
 static struct
@@ -152,6 +162,16 @@ static struct
 
     } lights;
     
+    struct
+    {
+        float start;
+        float end;
+        Color color;
+        enum RF_FogMode mode;
+
+        int startLoc, endLoc, colorLoc, modeLoc;
+
+    } fog;
 
 } RSF3D_State;
 
@@ -322,6 +342,11 @@ Shader RF_InitShader(void)
 
         "uniform int shadingModel;\n"
 
+        "uniform float fogStart;\n"
+        "uniform float fogEnd;\n"
+        "uniform vec3 fogColor;\n"
+        "uniform int fogMode;\n"
+
         "void main()\n"
         "{\n"
         "    vec4 texColor = texture(texture0, fragTexCoord) * colDiffuse;\n"
@@ -392,11 +417,33 @@ Shader RF_InitShader(void)
         "            lighting += (ambient + diffuse + specular) * attenuation * lightsIntensity[i];\n"
         "        }\n"
         "    }\n"
-
-        "    finalColor = vec4(\n"
-        "        lighting * texColor.rgb * fragColor.rgb,\n"
-        "        texColor.a * fragColor.a\n"
-        "    );\n"
+        "    if (fogMode == 0) // Linear fog\n"
+        "    {\n"
+        "        float fogFactor = (fogEnd - fragPosition.z) / (fogEnd - fogStart);\n"
+        "        fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+        "        finalColor = vec4(\n"
+        "            mix(fragColor.rgb, fogColor, fogFactor),\n"
+        "            fragColor.a\n"
+        "        );\n"
+        "    }\n"
+        "    else if (fogMode == 1) // Exponential fog\n"
+        "    {\n"
+        "        float fogFactor = 1.0 - exp(-fogDensity * (fogEnd - fragPosition.z));\n"
+        "        fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+        "        finalColor = vec4(\n"
+        "            mix(fragColor.rgb, fogColor, fogFactor),\n"
+        "            fragColor.a\n"
+        "        );\n"
+        "    }\n"
+        "    else if (fogMode == 2) // Exponential squared fog\n"
+        "    {\n"
+        "        float fogFactor = 1.0 - exp(-fogDensity * fogDensity * (fogEnd - fragPosition.z));\n"
+        "        fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+        "        finalColor = vec4(\n"
+        "            mix(fragColor.rgb, fogColor, fogFactor),\n"
+        "            fragColor.a\n"
+        "        );\n"
+        "    }\n"
         "}\n";
 
     // TraceLog(LOG_INFO, "Frag code: %s", fragSrc);
@@ -448,6 +495,13 @@ Shader RF_InitShader(void)
     RSF3D_State.lights.outerCutOff = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
     RSF3D_State.lights.mode = (int*)MemAlloc(sizeof(int) * RF_MAX_LIGHTS);
     RSF3D_State.lights.enabled = (int*)MemAlloc(sizeof(int) * RF_MAX_LIGHTS);
+
+    RSF3D_State.fog.startLoc = GetShaderLocation(shader, "fogStart");
+    RSF3D_State.fog.endLoc = GetShaderLocation(shader, "fogEnd");
+    RSF3D_State.fog.colorLoc = GetShaderLocation(shader, "fogColor");
+    RSF3D_State.fog.modeLoc = GetShaderLocation(shader, "fogMode");
+
+    RF_SetFog(shader, 0.0f, 100.0f, BLANK, RF_FOG_LINEAR); // Default fog is linear fog, with start = 0.0f, end = 100.0f, and color = BLANK (transparent)
 
     return shader;
 }
@@ -668,6 +722,19 @@ void RF_DrawSkybox(RF_Skybox skybox, Camera3D camera)
 
     rlEnableDepthMask();
     rlEnableBackfaceCulling();
+}
+
+void RF_SetFog(Shader shader, float start, float end, Color color, enum RF_FogMode mode)
+{
+    RSF3D_State.fog.start = start;
+    RSF3D_State.fog.end = end;
+    RSF3D_State.fog.color = color;
+    RSF3D_State.fog.mode = mode;
+
+    SetShaderValue(shader, RSF3D_State.fog.startLoc, &RSF3D_State.fog.start, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shader, RSF3D_State.fog.endLoc, &RSF3D_State.fog.end, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shader, RSF3D_State.fog.colorLoc, &RSF3D_State.fog.color, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, RSF3D_State.fog.modeLoc, &RSF3D_State.fog.mode, SHADER_UNIFORM_INT);
 }
 
 #if defined(__cplusplus)
