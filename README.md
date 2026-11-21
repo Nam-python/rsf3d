@@ -65,7 +65,7 @@ int main(void)
         EndDrawing();
     }
 
-    UnloadShader(shader);
+    RF_UnloadShader(shader); // shader must be the same as the one returned by RF_InitShader()
 
     CloseWindow();
 

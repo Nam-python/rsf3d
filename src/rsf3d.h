@@ -100,7 +100,7 @@ typedef struct RF_Skybox
 
 Shader RF_InitShader(void); // Initialize RSF3D shader. NOTE: Must be called after InitWindow() and do not call twice
 void RF_UpdateShader(Shader shader, Camera3D camera); // Update RSF3D shader, must be called every frame before drawing 3D objects
-void RF_UnloadShader(Shader shader); // Unload RSF3D shader, must be called after CloseWindow() and after drawing 3D objects
+void RF_UnloadShader(Shader shader); // Unload RSF3D shader, must be called after CloseWindow() and after drawing 3D objects. NOTE: shader must be the same as the one returned by RF_InitShader()
 
 // SHADING MODEL
 void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode); // Set shading model, default is Blinn-Phong
