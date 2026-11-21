@@ -75,3 +75,8 @@ int main(void)
 
 ## Warnings
 - If you want a deferred renderer, advanced lightings, etc..., this library may not be for you. You can try: [R3D - Bigfoot71](https://github.com/Bigfoot71/r3d)
+
+## Images
+![Blinn-Phong](examples/basic_blinn_phong_light.png)
+![Fog](examples/basic_fog.png)
+![Sponza](examples/sponza.png)
