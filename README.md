@@ -13,7 +13,7 @@ Features:
 Use: This library is just a C header-only, no binary files, so you just attach it with your projects.
 Learn: There are 2 ways to learn:
 1. Read the examples.
-2. Read the source code.
+2. Read the source code to understand how it works, especially shaders.
 
 ## Example:
 ```c
