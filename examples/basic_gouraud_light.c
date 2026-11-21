@@ -50,7 +50,7 @@ int main(void)
         EndDrawing();
     }
 
-    UnloadShader(shader);
+    RF_UnloadShader(shader);
     UnloadModel(plane);
 
     CloseWindow();

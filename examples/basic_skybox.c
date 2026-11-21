@@ -58,7 +58,7 @@ int main(void)
     }
 
     RF_UnloadSkybox(skybox);
-    UnloadShader(shader);
+    RF_UnloadShader(shader);
 
     CloseWindow();
 
