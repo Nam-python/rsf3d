@@ -34,6 +34,7 @@
 
 #include "external/raylib.h"
 #include "external/rlgl.h"
+#include "external/raymath.h"
 
 #if !defined(__cplusplus)
     #include <stdbool.h>
@@ -194,7 +195,6 @@ Shader RF_InitShader(void)
 
         "uniform mat4 mvp;\n"
         "uniform mat4 matModel;\n"
-
         "uniform vec3 viewPos;\n"
 
         "uniform vec3 lightsPosition[MAX_LIGHTS];\n"
@@ -217,13 +217,14 @@ Shader RF_InitShader(void)
         "uniform int lightsEnabled[MAX_LIGHTS];\n"
 
         "uniform float shininess;\n"
-
         "uniform int shadingModel;\n"
 
         "out vec3 fragPosition;\n"
         "out vec3 fragNormal;\n"
         "out vec2 fragTexCoord;\n"
-        "out vec4 fragColor;\n"
+
+        "out vec4 fragVertexColor;\n"
+        "out vec3 fragGouraudLighting;\n"
 
         "vec3 CalculateLighting(vec3 position, vec3 normal)\n"
         "{\n"
@@ -274,13 +275,17 @@ Shader RF_InitShader(void)
         "        float diff = max(dot(normal, lightDir), 0.0);\n"
 
         "        vec3 halfwayDir = normalize(lightDir + viewDir);\n"
-        "        float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);\n"
+        "        float spec = 0.0;\n"
+
+        "        if (diff > 0.0)\n"
+        "            spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);\n"
 
         "        vec3 ambient = lightsAmbient[i];\n"
         "        vec3 diffuse = lightsDiffuse[i] * diff;\n"
         "        vec3 specular = lightsSpecular[i] * spec;\n"
 
-        "        result += (ambient + diffuse + specular) * attenuation * lightsIntensity[i];\n"
+        "        result += (ambient + diffuse + specular)\n"
+        "                  * attenuation * lightsIntensity[i];\n"
         "    }\n"
 
         "    return result;\n"
@@ -297,19 +302,17 @@ Shader RF_InitShader(void)
 
         "    fragTexCoord = vertexTexCoord;\n"
 
-        "    vec3 finalColor = vec3(1.0);\n"
+        "    fragVertexColor = vertexColor;\n"
+
+        "    fragGouraudLighting = vec3(1.0);\n"
 
         "    if (shadingModel == 1)\n"
         "    {\n"
-        "        // Gouraud shading: calculate lighting per vertex\n"
-        "        finalColor = CalculateLighting(\n"
+        "        fragGouraudLighting = CalculateLighting(\n"
         "            fragPosition,\n"
         "            normalize(fragNormal)\n"
         "        );\n"
         "    }\n"
-
-        "    // Pass lighting to fragment shader\n"
-        "    fragColor = vec4(finalColor * vertexColor.rgb, vertexColor.a);\n"
 
         "    gl_Position = mvp * vec4(vertexPosition, 1.0);\n"
         "}\n";
@@ -321,7 +324,9 @@ Shader RF_InitShader(void)
         "in vec3 fragPosition;\n"
         "in vec3 fragNormal;\n"
         "in vec2 fragTexCoord;\n"
-        "in vec4 fragColor;\n"
+
+        "in vec4 fragVertexColor;\n"
+        "in vec3 fragGouraudLighting;\n"
 
         "out vec4 finalColor;\n"
 
@@ -349,9 +354,9 @@ Shader RF_InitShader(void)
         "uniform int lightsEnabled[MAX_LIGHTS];\n"
 
         "uniform float shininess;\n"
-
         "uniform int shadingModel;\n"
 
+        // FOG
         "uniform float fogStart;\n"
         "uniform float fogEnd;\n"
         "uniform vec4 fogColor;\n"
@@ -359,120 +364,132 @@ Shader RF_InitShader(void)
         "uniform float fogDensity;\n"
         "uniform int fogEnabled;\n"
 
+        "vec3 CalculateLighting(vec3 position, vec3 normal)\n"
+        "{\n"
+        "    vec3 viewDir = normalize(viewPos - position);\n"
+        "    vec3 result = vec3(0.0);\n"
+
+        "    for (int i = 0; i < MAX_LIGHTS; i++)\n"
+        "    {\n"
+        "        if (lightsEnabled[i] == 0) continue;\n"
+
+        "        vec3 lightDir;\n"
+        "        float attenuation = 1.0;\n"
+
+        "        if (lightsMode[i] == 1)\n"
+        "        {\n"
+        "            lightDir = normalize(lightsPosition[i] - lightsTargets[i]);\n"
+        "        }\n"
+        "        else\n"
+        "        {\n"
+        "            vec3 delta = lightsPosition[i] - position;\n"
+        "            float distance = length(delta);\n"
+        "            lightDir = normalize(delta);\n"
+
+        "            attenuation = 1.0 / max(\n"
+        "                lightsConstant[i] +\n"
+        "                lightsLinear[i] * distance +\n"
+        "                lightsQuadratic[i] * distance * distance,\n"
+        "                0.0001);\n"
+
+        "            if (lightsMode[i] == 2)\n"
+        "            {\n"
+        "                vec3 spotDir = normalize(lightsTargets[i] - lightsPosition[i]);\n"
+        "                vec3 fragDir = normalize(position - lightsPosition[i]);\n"
+
+        "                float theta = dot(spotDir, fragDir);\n"
+        "                float innerCutoff = cos(radians(lightsCutOff[i]));\n"
+        "                float outerCutoff = cos(radians(lightsOuterCutOff[i]));\n"
+
+        "                float epsilon = innerCutoff - outerCutoff;\n"
+        "                float spotIntensity = clamp(\n"
+        "                    (theta - outerCutoff) / max(epsilon, 0.0001),\n"
+        "                    0.0, 1.0);\n"
+
+        "                attenuation *= spotIntensity;\n"
+        "            }\n"
+        "        }\n"
+
+        "        float diff = max(dot(normal, lightDir), 0.0);\n"
+
+        "        vec3 halfwayDir = normalize(lightDir + viewDir);\n"
+        "        float spec = 0.0;\n"
+
+        "        if (diff > 0.0)\n"
+        "            spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);\n"
+
+        "        vec3 ambient = lightsAmbient[i];\n"
+        "        vec3 diffuse = lightsDiffuse[i] * diff;\n"
+        "        vec3 specular = lightsSpecular[i] * spec;\n"
+
+        "        result += (ambient + diffuse + specular)\n"
+        "                  * attenuation * lightsIntensity[i];\n"
+        "    }\n"
+
+        "    return result;\n"
+        "}\n"
+
         "void main()\n"
         "{\n"
         "    vec4 texColor = texture(texture0, fragTexCoord) * colDiffuse;\n"
-        "    if (texColor.a < 0.5) discard;"
-        "    vec3 lighting = vec3(0.0);\n"
+        "    texColor *= fragVertexColor;\n"
+
+        "    if (texColor.a < 0.5) discard;\n"
+
+        "    vec3 lighting;\n"
 
         "    if (shadingModel == 1)\n"
         "    {\n"
         "        // Gouraud shading\n"
-        "        lighting = fragColor.rgb;\n"
+        "        lighting = fragGouraudLighting;\n"
         "    }\n"
         "    else\n"
         "    {\n"
         "        // Blinn-Phong shading\n"
-        "        vec3 normal = normalize(fragNormal);\n"
-        "        vec3 viewDir = normalize(viewPos - fragPosition);\n"
-
-        "        for (int i = 0; i < MAX_LIGHTS; i++)\n"
-        "        {\n"
-        "            if (lightsEnabled[i] == 0) continue;\n"
-
-        "            vec3 lightDir;\n"
-        "            float attenuation = 1.0;\n"
-
-        "            if (lightsMode[i] == 1)\n"
-        "            {\n"
-        "                lightDir = normalize(lightsPosition[i] - lightsTargets[i]);\n"
-        "            }\n"
-        "            else\n"
-        "            {\n"
-        "                vec3 delta = lightsPosition[i] - fragPosition;\n"
-        "                float distance = length(delta);\n"
-        "                lightDir = normalize(delta);\n"
-
-        "                attenuation = 1.0 / max(\n"
-        "                    lightsConstant[i] +\n"
-        "                    lightsLinear[i] * distance +\n"
-        "                    lightsQuadratic[i] * distance * distance,\n"
-        "                    0.0001);\n"
-
-        "                if (lightsMode[i] == 2)\n"
-        "                {\n"
-        "                    vec3 spotDir = normalize(lightsTargets[i] - lightsPosition[i]);\n"
-        "                    vec3 fragDir = normalize(fragPosition - lightsPosition[i]);\n"
-
-        "                    float theta = dot(spotDir, fragDir);\n"
-        "                    float innerCutoff = cos(radians(lightsCutOff[i]));\n"
-        "                    float outerCutoff = cos(radians(lightsOuterCutOff[i]));\n"
-
-        "                    float epsilon = innerCutoff - outerCutoff;\n"
-        "                    float spotIntensity = clamp(\n"
-        "                        (theta - outerCutoff) / max(epsilon, 0.0001),\n"
-        "                        0.0, 1.0);\n"
-
-        "                    attenuation *= spotIntensity;\n"
-        "                }\n"
-        "            }\n"
-
-        "            float diff = max(dot(normal, lightDir), 0.0);\n"
-
-        "            vec3 halfwayDir = normalize(lightDir + viewDir);\n"
-        "            float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);\n"
-
-        "            vec3 ambient = lightsAmbient[i];\n"
-        "            vec3 diffuse = lightsDiffuse[i] * diff;\n"
-        "            vec3 specular = lightsSpecular[i] * spec;\n"
-
-        "            lighting += (ambient + diffuse + specular) * attenuation * lightsIntensity[i];\n"
-        "        }\n"
+        "        lighting = CalculateLighting(\n"
+        "            fragPosition,\n"
+        "            normalize(fragNormal)\n"
+        "        );\n"
         "    }\n"
 
-        "    vec3 surfaceColor;\n"
-        "    if (shadingModel == 1)\n"
-        "    {\n"
-        "        // Gouraud shading\n"
-        "        surfaceColor = texColor.rgb * fragColor.rgb;\n"
-        "    }\n"
-        "    else\n"
-        "    {\n"
-        "        // Blinn-Phong shading\n"
-        "        surfaceColor = texColor.rgb * lighting;\n"
-        "    }\n"
+        "    vec3 surfaceColor = texColor.rgb * lighting;\n"
+
+        "    // FOG\n"
         "    if (fogEnabled == 1)\n"
         "    {\n"
         "        float distanceToCamera = length(fragPosition - viewPos);\n"
         "        float fogFactor = 1.0;\n"
-        "\n"
-        "        if (fogMode == 0) // Linear\n"
+
+        "        if (fogMode == 0)\n"
         "        {\n"
+        "            // Linear fog\n"
         "            fogFactor = (fogEnd - distanceToCamera) /\n"
         "                        max(fogEnd - fogStart, 0.0001);\n"
         "        }\n"
-        "        else if (fogMode == 1) // EXP\n"
+        "        else if (fogMode == 1)\n"
         "        {\n"
+        "            // Exponential fog\n"
         "            fogFactor = exp(-fogDensity * distanceToCamera);\n"
         "        }\n"
-        "        else if (fogMode == 2) // EXP2\n"
+        "        else if (fogMode == 2)\n"
         "        {\n"
+        "            // Exponential squared fog\n"
         "            float d = fogDensity * distanceToCamera;\n"
         "            fogFactor = exp(-(d * d));\n"
         "        }\n"
-        "\n"
+
         "        fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
-        "\n"
-        "        finalColor = vec4(\n"
-        "            mix(fogColor.rgb, surfaceColor, fogFactor),\n"
-        "            texColor.a\n"
+
+        "        surfaceColor = mix(\n"
+        "            fogColor.rgb,\n"
+        "            surfaceColor,\n"
+        "            fogFactor\n"
         "        );\n"
         "    }\n"
-        "    else\n"
-        "    {\n"
-        "        finalColor = vec4(surfaceColor, texColor.a);\n"
-        "    }\n"
+
+        "    finalColor = vec4(surfaceColor, texColor.a);\n"
         "}\n";
+
     // TraceLog(LOG_INFO, "Frag code: %s", fragSrc);
 
     Shader shader = LoadShaderFromMemory(vertSrc, fragSrc);
@@ -688,7 +705,6 @@ void RF_UpdateLightIntoBuffer(const RF_Light* light, int index)
 void RF_SetShininess(Shader shader, float shininess)
 {
     if (shininess <= 0.0f) shininess = 0.0f; // Prevent negative shininess values
-    if (shininess > 256.0f) shininess = 256.0f; // Clamp shininess to a reasonable maximum
     SetShaderValue(shader, RSF3D_State.lights.shininessLoc, &shininess, SHADER_UNIFORM_FLOAT);
 }
 

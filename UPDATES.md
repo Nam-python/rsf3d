@@ -1,5 +1,8 @@
 # All updates of RSF3D library
 
+## 0.5.2 - November 22nd, 2026:
+- Improved the shaders.
+
 ## 0.5.1 - November 22nd, 2026:
 - Improved the function `RF_SetShininess`. 
 
