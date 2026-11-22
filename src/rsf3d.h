@@ -524,6 +524,8 @@ Shader RF_InitShader(void)
 
     RF_SetFog(shader, 0.0f, 100.0f, 0.5f, BLANK, RF_FOG_LINEAR, false); // Default fog is linear fog, with start = 0.0f, end = 100.0f, density = 0.5f, and color = BLANK (transparent)
 
+    TraceLog(LOG_INFO, "RSF3D: Initialized RSF3D shader");
+
     return shader;
 }
 
@@ -578,6 +580,8 @@ void RF_UnloadShader(Shader shader)
     if (RSF3D_State.lights.enabled != NULL) MemFree(RSF3D_State.lights.enabled);
 
     UnloadShader(shader);
+
+    TraceLog(LOG_INFO, "RSF3D: Unloaded RSF3D shader");
 }
 
 void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode)
@@ -715,6 +719,8 @@ RF_Skybox RF_CreateSkybox(void)
     skybox.energyLoc = GetShaderLocation(skybox.shader, "energy");
     skybox.model.materials[0].shader = skybox.shader;
 
+    TraceLog(LOG_INFO, "RSF3D: Created skybox");
+
     return skybox;
 }
 
@@ -722,12 +728,9 @@ void RF_UnloadSkybox(RF_Skybox skybox)
 {
     UnloadShader(skybox.shader);
 
-	// if (skybox.model.materials[0].maps[MATERIAL_MAP_ALBEDO].texture.id != 0) skybox.model.materials[0].maps[MATERIAL_MAP_ALBEDO].texture.id = 0;
-	skybox.model.materials[0].shader.id = rlGetShaderIdDefault();
-
     UnloadModel(skybox.model);
 
-    TraceLog(LOG_INFO, "Unloaded skybox");
+    TraceLog(LOG_INFO, "RSF3D: Unloaded skybox");
 }
 
 void RF_DrawSkybox(RF_Skybox skybox, Camera3D camera)
