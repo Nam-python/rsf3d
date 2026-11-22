@@ -12,7 +12,7 @@
 - Skybox.
 
 ## Requirements:
-- raylib version: 
+- raylib version: 5.5+.
 - C standard: C99+.
 - OpenGL version: 3.3+.
 
