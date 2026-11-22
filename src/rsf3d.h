@@ -687,6 +687,8 @@ void RF_UpdateLightIntoBuffer(const RF_Light* light, int index)
 
 void RF_SetShininess(Shader shader, float shininess)
 {
+    if (shininess <= 0.0f) shininess = 0.0f; // Prevent negative shininess values
+    if (shininess > 256.0f) shininess = 256.0f; // Clamp shininess to a reasonable maximum
     SetShaderValue(shader, RSF3D_State.lights.shininessLoc, &shininess, SHADER_UNIFORM_FLOAT);
 }
 

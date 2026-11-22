@@ -2,7 +2,7 @@
 
 ## Information
 - This library is a lightweight, easy-to-use 3d shader helper for raylib.
-- Latest version: 0.5.0.
+- Latest version: 0.5.1.
 - Features:
   - 2 shading models: Blinn-Phong and Gouraud.
   - 3 types of lights: point, directional and spot lights.
