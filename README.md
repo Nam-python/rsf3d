@@ -1,6 +1,6 @@
 # RSF3D (Raylib Shader Forward 3D)
 
-## Information
+## Information:
 - This library is a lightweight, easy-to-use 3d shader helper for raylib.
 - Latest version: 0.5.2.
 
@@ -16,7 +16,7 @@
 - C standard: C99+.
 - OpenGL version: 3.3+.
 
-## How to use and learn
+## How to use and learn:
 Use: This library is just a C header-only, no binary files, so you just attach it with your projects.
 Learn: There are 2 ways to learn:
 1. Read the examples.
@@ -80,13 +80,13 @@ int main(void)
 }
 ```
 
-## Warnings
+## Warnings:
 - If you want a deferred renderer, advanced lightings, SSAO, blooms, etc..., this library may not be for you. You can try: [R3D - Bigfoot71](https://github.com/Bigfoot71/r3d)
 
 ## License:
 - Licensed under the MIT License. You can see [LICENSE](LICENSE)
 
-## Images
+## Images:
 ![Blinn-Phong](examples/basic_blinn_phong_light.png)
 ![Fog](examples/basic_fog.png)
 ![Shininess Settings](examples/set_shininess.png)
