@@ -3,11 +3,18 @@
 ## Information
 - This library is a lightweight, easy-to-use 3d shader helper for raylib.
 - Latest version: 0.5.2.
-- Features:
-  - 2 shading models: Blinn-Phong and Gouraud.
-  - 3 types of lights: point, directional and spot lights.
-  - 3 types of fogs: linear, exponential and exponential squared fogs.
-  - Skybox.
+
+## Features:
+- 2 shading models: Blinn-Phong and Gouraud.
+- 3 types of lights: point, directional and spot lights.
+- 3 types of fogs: linear, exponential and exponential squared fogs.
+- Can set the shininess.
+- Skybox.
+
+## Requirements:
+- raylib version: 
+- C standard: C99+.
+- OpenGL version: 3.3+.
 
 ## How to use and learn
 Use: This library is just a C header-only, no binary files, so you just attach it with your projects.
@@ -74,9 +81,13 @@ int main(void)
 ```
 
 ## Warnings
-- If you want a deferred renderer, advanced lightings, etc..., this library may not be for you. You can try: [R3D - Bigfoot71](https://github.com/Bigfoot71/r3d)
+- If you want a deferred renderer, advanced lightings, SSAO, blooms, etc..., this library may not be for you. You can try: [R3D - Bigfoot71](https://github.com/Bigfoot71/r3d)
+
+## License:
+- Licensed under the MIT License. You can see [LICENSE](LICENSE)
 
 ## Images
 ![Blinn-Phong](examples/basic_blinn_phong_light.png)
 ![Fog](examples/basic_fog.png)
+![Shininess Settings](examples/set_shininess.png)
 ![Sponza](examples/sponza.png)
