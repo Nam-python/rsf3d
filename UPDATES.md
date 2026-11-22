@@ -1,5 +1,8 @@
 # All updates of RSF3D library
 
+## 0.5.0 - Novembr 22nd, 2026:
+- Added function `RF_SetShininess`.
+
 ## 0.4.2 - November 21st, 2026:
 - Added `enabled` argument for function `RF_SetFog`.
 - Fixed the fog's color problem.

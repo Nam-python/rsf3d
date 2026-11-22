@@ -8,7 +8,7 @@ int main(void)
 
     Shader shader = RF_InitShader();
     Color fogColor = (Color){100, 100, 100, 255};
-    RF_SetFog(shader, 0.0f, 10.0f, 0.5f, fogColor, RF_FOG_LINEAR); // Set fog parameters
+    RF_SetFog(shader, 0.0f, 10.0f, 0.5f, fogColor, RF_FOG_LINEAR, true); // Set fog parameters
 
     Camera3D camera = {0};
     camera.position = (Vector3){5.0f, 5.0f, 5.0f};

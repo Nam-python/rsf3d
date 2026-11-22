@@ -100,7 +100,7 @@ typedef struct RF_Skybox
 
 Shader RF_InitShader(void); // Initialize RSF3D shader. NOTE: Must be called after InitWindow() and do not call twice
 void RF_UpdateShader(Shader shader, Camera3D camera); // Update RSF3D shader, must be called every frame before drawing 3D objects
-void RF_UnloadShader(Shader shader); // Unload RSF3D shader, must be called after CloseWindow() and after drawing 3D objects. NOTE: shader must be the same as the one returned by RF_InitShader()
+void RF_UnloadShader(Shader shader); // Unload RSF3D shader. NOTE: shader must be the same as the one returned by RF_InitShader()
 
 // SHADING MODEL
 void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode); // Set shading model, default is Blinn-Phong
@@ -117,6 +117,8 @@ RF_Light RF_CreateLightDirectional(Vector3 position, Vector3 target, Color ambie
 RF_Light RF_CreateLightSpot(Vector3 position, Vector3 target, Color ambient, Color diffuse, Color specular, float cutOff, float outerCutOff, float intensity); // Create spot light
 
 void RF_UpdateLightIntoBuffer(const RF_Light* light, int index); // Update light into RSF3D state's buffer (should be in the loop if the light's data is changed a lot)
+
+void RF_SetShininess(Shader shader, float shininess); // Set shininess for specular lighting
 
 // SKYBOX
 RF_Skybox RF_CreateSkybox(void); // Create skybox, must be called after RF_InitShader() and before drawing 3D objects
@@ -152,9 +154,11 @@ static struct
         int* mode;
         int* enabled;
 
+        float shininess;
+
         int posLoc, tarLoc, ambientLoc, difLoc, specularLoc, 
             intensityLoc, constantLoc, linearLoc, quadrLoc,
-            modeLoc, enabledLoc, cutOffLoc, outerCutOffLoc;
+            modeLoc, enabledLoc, cutOffLoc, outerCutOffLoc, shininessLoc;
 
         int viewLoc;
 
@@ -212,6 +216,8 @@ Shader RF_InitShader(void)
         "uniform int lightsMode[MAX_LIGHTS];\n"
         "uniform int lightsEnabled[MAX_LIGHTS];\n"
 
+        "uniform float shininess;\n"
+
         "uniform int shadingModel;\n"
 
         "out vec3 fragPosition;\n"
@@ -268,7 +274,7 @@ Shader RF_InitShader(void)
         "        float diff = max(dot(normal, lightDir), 0.0);\n"
 
         "        vec3 halfwayDir = normalize(lightDir + viewDir);\n"
-        "        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);\n"
+        "        float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);\n"
 
         "        vec3 ambient = lightsAmbient[i];\n"
         "        vec3 diffuse = lightsDiffuse[i] * diff;\n"
@@ -342,6 +348,8 @@ Shader RF_InitShader(void)
         "uniform int lightsMode[MAX_LIGHTS];\n"
         "uniform int lightsEnabled[MAX_LIGHTS];\n"
 
+        "uniform float shininess;\n"
+
         "uniform int shadingModel;\n"
 
         "uniform float fogStart;\n"
@@ -412,7 +420,7 @@ Shader RF_InitShader(void)
         "            float diff = max(dot(normal, lightDir), 0.0);\n"
 
         "            vec3 halfwayDir = normalize(lightDir + viewDir);\n"
-        "            float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);\n"
+        "            float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);\n"
 
         "            vec3 ambient = lightsAmbient[i];\n"
         "            vec3 diffuse = lightsDiffuse[i] * diff;\n"
@@ -501,17 +509,24 @@ Shader RF_InitShader(void)
     RSF3D_State.lights.shadingModelLoc = GetShaderLocation(shader, "shadingModel");
     RF_SetShadingModel(shader, RF_SHADING_MODEL_BLINN_PHONG); // Blinn-Phong shading model is default
 
+    // SHININESS
+    RSF3D_State.lights.shininessLoc = GetShaderLocation(shader, "shininess");
+
     RSF3D_State.lights.positions = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
     RSF3D_State.lights.targets = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
+
     RSF3D_State.lights.ambientColors = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
     RSF3D_State.lights.diffuseColors = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
     RSF3D_State.lights.specularColors = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
+
     RSF3D_State.lights.intensity = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
     RSF3D_State.lights.constant = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
     RSF3D_State.lights.linear = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
     RSF3D_State.lights.quadratic = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+
     RSF3D_State.lights.cutOff = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
     RSF3D_State.lights.outerCutOff = (float*)MemAlloc(sizeof(float) * RF_MAX_LIGHTS);
+
     RSF3D_State.lights.mode = (int*)MemAlloc(sizeof(int) * RF_MAX_LIGHTS);
     RSF3D_State.lights.enabled = (int*)MemAlloc(sizeof(int) * RF_MAX_LIGHTS);
 
@@ -523,6 +538,7 @@ Shader RF_InitShader(void)
     RSF3D_State.fog.enabledFogLoc = GetShaderLocation(shader, "fogEnabled");
 
     RF_SetFog(shader, 0.0f, 100.0f, 0.5f, BLANK, RF_FOG_LINEAR, false); // Default fog is linear fog, with start = 0.0f, end = 100.0f, density = 0.5f, and color = BLANK (transparent)
+    RF_SetShininess(shader, 32.0f); // Default shininess is 32.0f
 
     TraceLog(LOG_INFO, "RSF3D: Initialized RSF3D shader");
 
@@ -667,6 +683,11 @@ void RF_UpdateLightIntoBuffer(const RF_Light* light, int index)
 
     RSF3D_State.lights.mode[index] = light->mode;
     RSF3D_State.lights.enabled[index] = light->enabled ? 1 : 0;
+}
+
+void RF_SetShininess(Shader shader, float shininess)
+{
+    SetShaderValue(shader, RSF3D_State.lights.shininessLoc, &shininess, SHADER_UNIFORM_FLOAT);
 }
 
 RF_Skybox RF_CreateSkybox(void)
