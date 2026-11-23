@@ -99,12 +99,12 @@ typedef struct RF_Skybox
 
 } RF_Skybox;
 
-Shader RF_InitShader(void); // Initialize RSF3D shader. NOTE: Must be called after InitWindow() and do not call twice
+Shader RF_InitShader(void); // Initialize RSF3D shader. NOTE: Must be called after InitWindow() and do not call twice. Default shading model is Blinn-Phong, shininess is 32.0f and gamma correction is 1.0f.
 void RF_UpdateShader(Shader shader, Camera3D camera); // Update RSF3D shader, must be called every frame before drawing 3D objects
 void RF_UnloadShader(Shader shader); // Unload RSF3D shader. NOTE: shader must be the same as the one returned by RF_InitShader()
 
 // SHADING MODEL
-void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode); // Set shading model, default is Blinn-Phong
+void RF_SetShadingModel(Shader shader, enum RF_ShadingModel shadingMode); // Set shading model
 
 // LIGHT
 RF_Light RF_CreateLightPro(Vector3 position, Vector3 target, 
@@ -120,6 +120,7 @@ RF_Light RF_CreateLightSpot(Vector3 position, Vector3 target, Color ambient, Col
 void RF_UpdateLightIntoBuffer(const RF_Light* light, int index); // Update light into RSF3D state's buffer (should be in the loop if the light's data is changed a lot)
 
 void RF_SetShininess(Shader shader, float shininess); // Set shininess for specular lighting
+void RF_SetGammaCorrection(Shader shader, float gamma); // Set gamma correction for lighting
 
 // SKYBOX
 RF_Skybox RF_CreateSkybox(void); // Create skybox, must be called after RF_InitShader() and before drawing 3D objects
@@ -156,10 +157,11 @@ static struct
         int* enabled;
 
         float shininess;
+        float gamma;
 
         int posLoc, tarLoc, ambientLoc, difLoc, specularLoc, 
             intensityLoc, constantLoc, linearLoc, quadrLoc,
-            modeLoc, enabledLoc, cutOffLoc, outerCutOffLoc, shininessLoc;
+            modeLoc, enabledLoc, cutOffLoc, outerCutOffLoc, shininessLoc, gammaLoc;
 
         int viewLoc;
 
@@ -355,6 +357,7 @@ Shader RF_InitShader(void)
 
         "uniform float shininess;\n"
         "uniform int shadingModel;\n"
+        "uniform float gamma;\n"
 
         // FOG
         "uniform float fogStart;\n"
@@ -415,8 +418,8 @@ Shader RF_InitShader(void)
         "        vec3 halfwayDir = normalize(lightDir + viewDir);\n"
         "        float spec = 0.0;\n"
 
-        "        if (diff > 0.0)\n"
-        "            spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);\n"
+        // "        //if (diff > 0.0)\n"
+        "        spec = pow(max(dot(normal, halfwayDir), 0.0), max(shininess, 0.0001));\n"
 
         "        vec3 ambient = lightsAmbient[i];\n"
         "        vec3 diffuse = lightsDiffuse[i] * diff;\n"
@@ -488,6 +491,7 @@ Shader RF_InitShader(void)
         "    }\n"
 
         "    finalColor = vec4(surfaceColor, texColor.a);\n"
+        "    finalColor.rgb = pow(finalColor.rgb, vec3(1.0/gamma));\n"
         "}\n";
 
     // TraceLog(LOG_INFO, "Frag code: %s", fragSrc);
@@ -529,6 +533,9 @@ Shader RF_InitShader(void)
     // SHININESS
     RSF3D_State.lights.shininessLoc = GetShaderLocation(shader, "shininess");
 
+    // GAMMA CORRECTION
+    RSF3D_State.lights.gammaLoc = GetShaderLocation(shader, "gamma");
+
     RSF3D_State.lights.positions = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
     RSF3D_State.lights.targets = (Vector3*)MemAlloc(sizeof(Vector3) * RF_MAX_LIGHTS);
 
@@ -556,6 +563,7 @@ Shader RF_InitShader(void)
 
     RF_SetFog(shader, 0.0f, 100.0f, 0.5f, BLANK, RF_FOG_LINEAR, false); // Default fog is linear fog, with start = 0.0f, end = 100.0f, density = 0.5f, and color = BLANK (transparent)
     RF_SetShininess(shader, 32.0f); // Default shininess is 32.0f
+    RF_SetGammaCorrection(shader, 1.0f); // Default gamma correction is 1.0f
 
     TraceLog(LOG_INFO, "RSF3D: Initialized RSF3D shader");
 
@@ -675,7 +683,7 @@ void RF_UpdateLightIntoBuffer(const RF_Light* light, int index)
 {
     if (light == NULL || index < 0 || index >= RF_MAX_LIGHTS)
     {
-        TraceLog(LOG_WARNING, "Light RFS3D must not be null or index must be greater than 0 or less than %d", RF_MAX_LIGHTS);
+        TraceLog(LOG_WARNING, "Light RFS3D must not be null and index must be greater than 0 or less than %d", RF_MAX_LIGHTS);
         return;
     }
 
@@ -706,6 +714,12 @@ void RF_SetShininess(Shader shader, float shininess)
 {
     if (shininess <= 0.0f) shininess = 0.0f; // Prevent negative shininess values
     SetShaderValue(shader, RSF3D_State.lights.shininessLoc, &shininess, SHADER_UNIFORM_FLOAT);
+}
+
+void RF_SetGammaCorrection(Shader shader, float gamma)
+{
+    if (gamma <= 0.0f) gamma = 1.0f; // Prevent negative or zero gamma values
+    SetShaderValue(shader, RSF3D_State.lights.gammaLoc, &gamma, SHADER_UNIFORM_FLOAT);
 }
 
 RF_Skybox RF_CreateSkybox(void)
