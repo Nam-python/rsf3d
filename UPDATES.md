@@ -1,5 +1,9 @@
 # All updates of RSF3D library
 
+## 0.6.0 - November 23rd, 2026:
+- Added the gamma correction.
+- Fixed the specular calculation problem when the shininess is equal to 1.
+
 ## 0.5.2 - November 22nd, 2026:
 - Improved the shaders.
 
