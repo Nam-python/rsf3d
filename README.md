@@ -7,7 +7,7 @@
 ## Features:
 - 2 shading models: Blinn-Phong and Gouraud.
 - 3 types of lights: point, directional and spot lights.
-- 3 types of fogs: linear, exponential and exponential squared fogs.
+- 3 types of fogs: linear, exponential and exponential squared fog.
 - Can set the shininess.
 - Skybox.
 
@@ -81,10 +81,10 @@ int main(void)
 ```
 
 ## Warnings:
-- If you want a deferred renderer, advanced lightings, SSAO, blooms, etc..., this library may not be for you. You can try: [R3D - Bigfoot71](https://github.com/Bigfoot71/r3d)
+- If you want a deferred renderer, advanced lightings, SSAO, blooms, etc..., this library may not be for you. You can try: [R3D - Bigfoot71](https://github.com/Bigfoot71/r3d).
 
 ## License:
-- Licensed under the MIT License. You can see [LICENSE](LICENSE)
+- Licensed under the MIT License. You can see [LICENSE](LICENSE).
 
 ## Images:
 ![Blinn-Phong](examples/basic_blinn_phong_light.png)
