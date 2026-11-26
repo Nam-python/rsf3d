@@ -40,7 +40,7 @@ int main(void)
     camera.target = (Vector3){0.0f, 0.0f, 0.0f};
     camera.up = (Vector3){0.0f, 1.0f, 0.0f};
 
-    Shader shader = RF_InitShader(); // default shading model is Blinn-Phong, shininess is 32.0f, gamma is 2.2f.
+    Shader shader = RF_InitShader(); // default shading model is Blinn-Phong, shininess is 32.0f, gamma is 1.0f.
 
     RF_Light light = RF_CreateLightPoint((Vector3){-3.0f, 3.0f, -3.0f}, 
         (Color){15,15,15,255}, (Color){100,100,100,255}, WHITE, 3.0f);
